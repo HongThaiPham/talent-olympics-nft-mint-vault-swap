@@ -15,7 +15,11 @@ declare_id!("2K2jn1PU9TjxmL3PkmRRCMs1pvaqZEbGjSyHbpqdRLdT");
 pub mod talent_olympics_nft_mint_vault_swap {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+    pub fn initialize(ctx: Context<Initialize>, fee: u64) -> Result<()> {
+        ctx.accounts.handler(fee)
+    }
+
+    pub fn set_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
+        ctx.accounts.handler(fee)
     }
 }
