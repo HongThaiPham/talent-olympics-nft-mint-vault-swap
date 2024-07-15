@@ -22,4 +22,11 @@ pub mod talent_olympics_nft_mint_vault_swap {
     pub fn set_fee(ctx: Context<SetFee>, fee: u64) -> Result<()> {
         ctx.accounts.handler(fee)
     }
+
+    pub fn create_collection(
+        ctx: Context<CreateCollection>,
+        args: CreateCollectionV1Args,
+    ) -> Result<()> {
+        ctx.accounts.handler(args)
+    }
 }

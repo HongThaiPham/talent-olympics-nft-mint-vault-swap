@@ -32,6 +32,13 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
     program.programId
   );
 
+  const collection = anchor.web3.Keypair.generate();
+  const collectionArgs = {
+    name: "Solana Talent Olympics Collection 2024",
+    uri: "https://ipfs.io/ipfs/QmQQYq41wkaAu5ekxv3xeDbSKyribYvHP8Pz7kPddYvvwB",
+    plugins: [],
+  };
+
   before(async () => {
     {
       const tx = await provider.connection.requestAirdrop(
@@ -80,5 +87,20 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
     assert.ok(tx);
 
     console.log("Fee updated successfully at tx: ", tx);
+  });
+
+  it("Should create a collection successfully", async () => {
+    const tx = await program.methods
+      .createCollection(collectionArgs)
+      .accountsPartial({
+        payer: user1.publicKey,
+        collection: collection.publicKey,
+      })
+      .signers([user1, collection])
+      .rpc();
+
+    assert.ok(tx);
+
+    console.log("Collection created successfully at tx: ", tx);
   });
 });
