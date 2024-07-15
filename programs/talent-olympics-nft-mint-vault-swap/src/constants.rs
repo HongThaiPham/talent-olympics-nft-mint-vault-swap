@@ -6,3 +6,6 @@ pub const CONFIG_SEED: &[u8] = b"config";
 
 #[constant]
 pub const VAULT_SEED: &[u8] = b"vault";
+
+#[constant]
+pub const LOCKER_SEED: &[u8] = b"locker";

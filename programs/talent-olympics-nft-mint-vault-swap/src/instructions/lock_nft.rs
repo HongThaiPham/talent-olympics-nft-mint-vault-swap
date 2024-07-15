@@ -3,7 +3,7 @@ use anchor_lang::{
     system_program::{self, Transfer},
 };
 
-use crate::{ProtocolConfig, CONFIG_SEED, VAULT_SEED};
+use crate::{Locker, ProtocolConfig, CONFIG_SEED, DISCRIMINATOR_SIZE, LOCKER_SEED, VAULT_SEED};
 
 #[derive(Accounts)]
 pub struct LockNft<'info> {
@@ -23,6 +23,15 @@ pub struct LockNft<'info> {
         bump,
     )]
     pub vault: AccountInfo<'info>,
+    #[account(
+        init,
+        seeds = [LOCKER_SEED.as_ref(), asset.key.as_ref() , signer.key.as_ref()],
+        bump,
+        space = DISCRIMINATOR_SIZE + Locker::INIT_SPACE,
+        payer = signer,
+    )]
+    pub locker: Account<'info, Locker>,
+
     /// The address of the asset.
     /// CHECK: Checked in mpl-core.
     #[account(mut)]
@@ -48,6 +57,11 @@ pub struct LockNft<'info> {
 
 impl<'info> LockNft<'info> {
     pub fn handler(&mut self) -> Result<()> {
+        self.locker.set_inner(Locker {
+            owner: self.signer.to_account_info().key(),
+            asset: self.asset.to_account_info().key(),
+            locked_at: Clock::get()?.unix_timestamp,
+        });
         self.collect_fee()?;
         self.transfer_nft()?;
         Ok(())

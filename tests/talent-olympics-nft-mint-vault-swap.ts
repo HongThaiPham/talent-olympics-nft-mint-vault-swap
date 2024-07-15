@@ -60,6 +60,7 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
   const collection = anchor.web3.Keypair.generate();
 
   const aNft = anchor.web3.Keypair.generate();
+
   const collectionArgs = {
     name: "Solana Talent Olympics Collection 2024",
     uri: "https://ipfs.io/ipfs/QmQQYq41wkaAu5ekxv3xeDbSKyribYvHP8Pz7kPddYvvwB",
@@ -183,12 +184,21 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
   });
 
   it("Should lock a nft successfully", async () => {
+    const [lockerAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("locker"),
+        aNft.publicKey.toBuffer(),
+        user1.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
     const tx = await program.methods
       .lockNft()
       .accountsPartial({
         signer: user1.publicKey,
         asset: aNft.publicKey,
         collection: collection.publicKey,
+        locker: lockerAccount,
         authority: null,
         logWrapper: null,
       })
