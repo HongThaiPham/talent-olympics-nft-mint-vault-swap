@@ -17,8 +17,8 @@ import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
 describe("talent-olympics-nft-mint-vault-swap", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
-  // provider.opts.skipPreflight = true;
-  // provider.opts.commitment = "confirmed";
+  provider.opts.skipPreflight = true;
+  provider.opts.commitment = "confirmed";
   anchor.setProvider(provider);
 
   const program = anchor.workspace
@@ -38,22 +38,27 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
     user2: user2.publicKey.toBase58(),
   });
 
-  // const umi = createUmi(provider.connection.rpcEndpoint, "confirmed").use(
-  //   mplTokenMetadata()
-  // );
+  const umi = createUmi(provider.connection.rpcEndpoint, "confirmed").use(
+    mplTokenMetadata()
+  );
 
-  // // const mySigner = createNoopSigner(admin.publicKey);
+  // const mySigner = createNoopSigner(admin.publicKey);
 
-  // const adminUmiKeypair = umi.eddsa.createKeypairFromSecretKey(admin.secretKey);
-  // umi.use(keypairIdentity(adminUmiKeypair));
+  const adminUmiKeypair = umi.eddsa.createKeypairFromSecretKey(admin.secretKey);
+  umi.use(keypairIdentity(adminUmiKeypair));
 
   const [protocolAccount] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
     program.programId
   );
 
+  const [vaultAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("vault")],
+    program.programId
+  );
+
   const collection = anchor.web3.Keypair.generate();
-  console.log("Collection: ", collection.publicKey.toBase58());
+
   const aNft = anchor.web3.Keypair.generate();
   const collectionArgs = {
     name: "Solana Talent Olympics Collection 2024",
@@ -119,22 +124,22 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
       .accountsPartial({
         payer: user1.publicKey,
         collection: collection.publicKey,
-        updateAuthority: null,
+        updateAuthority: user1.publicKey,
       })
       .signers([user1, collection])
       .rpc();
 
     assert.ok(tx);
 
-    // const collectionData = await fetchCollection(
-    //   umi,
-    //   collection.publicKey.toString()
-    // );
+    const collectionData = await fetchCollection(
+      umi,
+      collection.publicKey.toString()
+    );
 
-    // assert.equal(collectionData.name, collectionArgs.name);
-    // assert.equal(collectionData.uri, collectionArgs.uri);
-    // assert.equal(collectionData.numMinted, 0);
-    // assert.equal(collectionData.updateAuthority, user1.publicKey.toString());
+    assert.equal(collectionData.name, collectionArgs.name);
+    assert.equal(collectionData.uri, collectionArgs.uri);
+    assert.equal(collectionData.numMinted, 0);
+    assert.equal(collectionData.updateAuthority, user1.publicKey.toString());
 
     console.log("Collection created successfully at tx: ", tx);
   });
@@ -155,6 +160,53 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
 
     assert.ok(tx);
 
+    const assetData = await fetchAssetV1(
+      umi,
+      publicKey(aNft.publicKey.toString())
+    );
+
+    assert.equal(assetData.name, assetArgs.name);
+    assert.equal(assetData.uri, assetArgs.uri);
+    assert.equal(assetData.updateAuthority.type, "Collection");
+    assert.equal(
+      assetData.updateAuthority.address,
+      collection.publicKey.toString()
+    );
+
+    const collectionData = await fetchCollection(
+      umi,
+      collection.publicKey.toString()
+    );
+    assert.equal(collectionData.numMinted, 1);
+
     console.log("Token minted successfully at tx: ", tx);
+  });
+
+  it("Should lock a nft successfully", async () => {
+    const tx = await program.methods
+      .lockNft()
+      .accountsPartial({
+        signer: user1.publicKey,
+        asset: aNft.publicKey,
+        collection: collection.publicKey,
+        authority: null,
+        logWrapper: null,
+      })
+      .signers([user1])
+      .rpc();
+
+    assert.ok(tx);
+
+    const assetData = await fetchAssetV1(
+      umi,
+      publicKey(aNft.publicKey.toString())
+    );
+
+    assert.equal(assetData.owner.toString(), vaultAccount.toString());
+
+    const vaultBalance = await provider.connection.getBalance(vaultAccount);
+    assert.equal(vaultBalance, 1_000_000_000);
+
+    console.log("Token locked successfully at tx: ", tx);
   });
 });

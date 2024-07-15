@@ -13,3 +13,7 @@ pub use create_collection::*;
 pub mod mint_nft;
 
 pub use mint_nft::*;
+
+pub mod lock_nft;
+
+pub use lock_nft::*;

@@ -33,4 +33,8 @@ pub mod talent_olympics_nft_mint_vault_swap {
     pub fn mint_nft(ctx: Context<MintNft>, args: CreateAssetArgs) -> Result<()> {
         ctx.accounts.handler(args)
     }
+
+    pub fn lock_nft(ctx: Context<LockNft>) -> Result<()> {
+        ctx.accounts.handler()
+    }
 }
