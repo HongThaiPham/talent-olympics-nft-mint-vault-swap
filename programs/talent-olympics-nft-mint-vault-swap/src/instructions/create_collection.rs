@@ -7,6 +7,9 @@ pub struct CreateCollection<'info> {
     pub payer: Signer<'info>,
     #[account(mut)]
     pub collection: Signer<'info>,
+    /// The authority on the new asset.
+    /// CHECK: Checked in mpl-core.
+    pub update_authority: Option<AccountInfo<'info>>,
     /// The MPL Core program.
     /// CHECK: Checked in mpl-core.
     #[account(address = mpl_core::ID)]
@@ -27,7 +30,7 @@ impl<'info> CreateCollection<'info> {
         mpl_core::instructions::CreateCollectionV1Cpi {
             collection: &self.collection.to_account_info(),
             payer: &self.payer.to_account_info(),
-            update_authority: Some(&self.payer.to_account_info()),
+            update_authority: self.update_authority.as_ref(),
             system_program: &self.system_program.to_account_info(),
             __program: &self.mpl_core,
             __args: mpl_core::instructions::CreateCollectionV1InstructionArgs {

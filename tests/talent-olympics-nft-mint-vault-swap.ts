@@ -3,6 +3,17 @@ import { Program } from "@coral-xyz/anchor";
 import { TalentOlympicsNftMintVaultSwap } from "../target/types/talent_olympics_nft_mint_vault_swap";
 import { assert } from "chai";
 
+import { fetchAssetV1, fetchCollection } from "@metaplex-foundation/mpl-core";
+import { describe, it } from "node:test";
+import {
+  createNoopSigner,
+  createSignerFromKeypair,
+  keypairIdentity,
+  publicKey,
+} from "@metaplex-foundation/umi";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
+
 describe("talent-olympics-nft-mint-vault-swap", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
@@ -22,10 +33,19 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
   ];
 
   console.table({
-    poolAuthor: admin.publicKey.toBase58(),
+    admin: admin.publicKey.toBase58(),
     user1: user1.publicKey.toBase58(),
     user2: user2.publicKey.toBase58(),
   });
+
+  // const umi = createUmi(provider.connection.rpcEndpoint, "confirmed").use(
+  //   mplTokenMetadata()
+  // );
+
+  // // const mySigner = createNoopSigner(admin.publicKey);
+
+  // const adminUmiKeypair = umi.eddsa.createKeypairFromSecretKey(admin.secretKey);
+  // umi.use(keypairIdentity(adminUmiKeypair));
 
   const [protocolAccount] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
@@ -33,32 +53,38 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
   );
 
   const collection = anchor.web3.Keypair.generate();
+  console.log("Collection: ", collection.publicKey.toBase58());
+  const aNft = anchor.web3.Keypair.generate();
   const collectionArgs = {
     name: "Solana Talent Olympics Collection 2024",
     uri: "https://ipfs.io/ipfs/QmQQYq41wkaAu5ekxv3xeDbSKyribYvHP8Pz7kPddYvvwB",
     plugins: [],
   };
 
-  before(async () => {
-    {
-      const tx = await provider.connection.requestAirdrop(
-        admin.publicKey,
-        5 * anchor.web3.LAMPORTS_PER_SOL
-      );
-      await provider.connection.confirmTransaction(tx);
+  const assetArgs = {
+    name: "Solana Talent Olympics NFT 2024",
+    uri: "https://ipfs.io/ipfs/QmQQYq41wkaAu5ekxv3xeDbSKyribYvHP8Pz7kPddYvvwB",
+    plugins: [],
+  };
 
-      const tx2 = await provider.connection.requestAirdrop(
-        user1.publicKey,
-        5 * anchor.web3.LAMPORTS_PER_SOL
-      );
-      await provider.connection.confirmTransaction(tx2);
+  it("Init test successfully", async () => {
+    const tx = await provider.connection.requestAirdrop(
+      admin.publicKey,
+      10 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(tx);
 
-      const tx3 = await provider.connection.requestAirdrop(
-        user2.publicKey,
-        5 * anchor.web3.LAMPORTS_PER_SOL
-      );
-      await provider.connection.confirmTransaction(tx3);
-    }
+    const tx2 = await provider.connection.requestAirdrop(
+      user1.publicKey,
+      10 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(tx2);
+
+    const tx3 = await provider.connection.requestAirdrop(
+      user2.publicKey,
+      10 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(tx3);
   });
 
   it("Should init protocol successfully", async () => {
@@ -69,9 +95,7 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
       })
       .signers([admin])
       .rpc();
-
     assert.ok(tx);
-
     console.log("Protocol initialized successfully at tx: ", tx);
   });
 
@@ -95,12 +119,42 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
       .accountsPartial({
         payer: user1.publicKey,
         collection: collection.publicKey,
+        updateAuthority: null,
       })
       .signers([user1, collection])
       .rpc();
 
     assert.ok(tx);
 
+    // const collectionData = await fetchCollection(
+    //   umi,
+    //   collection.publicKey.toString()
+    // );
+
+    // assert.equal(collectionData.name, collectionArgs.name);
+    // assert.equal(collectionData.uri, collectionArgs.uri);
+    // assert.equal(collectionData.numMinted, 0);
+    // assert.equal(collectionData.updateAuthority, user1.publicKey.toString());
+
     console.log("Collection created successfully at tx: ", tx);
+  });
+
+  it("Should mint a token successfully", async () => {
+    const tx = await program.methods
+      .mintNft(assetArgs)
+      .accountsPartial({
+        authority: user1.publicKey,
+        asset: aNft.publicKey,
+        collection: collection.publicKey,
+        owner: null,
+        updateAuthority: null,
+        logWrapper: null,
+      })
+      .signers([user1, aNft])
+      .rpc();
+
+    assert.ok(tx);
+
+    console.log("Token minted successfully at tx: ", tx);
   });
 });
