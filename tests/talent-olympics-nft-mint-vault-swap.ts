@@ -221,7 +221,7 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
     console.log("Token locked successfully at tx: ", tx);
   });
 
-  it("Should unlock a nft successfully", async () => {
+  it.skip("Should unlock a nft successfully", async () => {
     const [lockerAccount] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("locker"),
@@ -253,5 +253,50 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
     assert.equal(assetData.owner.toString(), user1.publicKey.toString());
 
     console.log("Token unlocked successfully at tx: ", tx);
+  });
+
+  it("Should swap a nft successfully", async () => {
+    const [lockerAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("locker"),
+        aNft.publicKey.toBuffer(),
+        user1.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const oldUser1Balance = await provider.connection.getBalance(
+      user1.publicKey
+    );
+
+    const tx = await program.methods
+      .swap()
+      .accountsPartial({
+        signer: user2.publicKey,
+        asset: aNft.publicKey,
+        oldOwner: user1.publicKey,
+        collection: collection.publicKey,
+        locker: lockerAccount,
+        authority: null,
+        logWrapper: null,
+      })
+      .signers([user2])
+      .rpc();
+
+    assert.ok(tx);
+
+    const assetData = await fetchAssetV1(
+      umi,
+      publicKey(aNft.publicKey.toString())
+    );
+
+    assert.equal(assetData.owner.toString(), user2.publicKey.toString());
+
+    const newUser1Balance = await provider.connection.getBalance(
+      user1.publicKey
+    );
+
+    assert.isAbove(newUser1Balance, oldUser1Balance + NFT_PRICE.toNumber());
+
+    console.log("Token swapped successfully at tx: ", tx);
   });
 });

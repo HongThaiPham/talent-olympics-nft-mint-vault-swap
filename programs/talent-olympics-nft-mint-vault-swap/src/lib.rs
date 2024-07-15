@@ -41,4 +41,8 @@ pub mod talent_olympics_nft_mint_vault_swap {
     pub fn unlock_nft(ctx: Context<UnlockNft>) -> Result<()> {
         ctx.accounts.handler(ctx.bumps)
     }
+
+    pub fn swap(ctx: Context<Swap>) -> Result<()> {
+        ctx.accounts.handler(ctx.bumps)
+    }
 }
