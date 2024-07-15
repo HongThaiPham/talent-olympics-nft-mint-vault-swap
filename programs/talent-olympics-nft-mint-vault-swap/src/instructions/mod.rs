@@ -17,3 +17,7 @@ pub use mint_nft::*;
 pub mod lock_nft;
 
 pub use lock_nft::*;
+
+pub mod unlock_nft;
+
+pub use unlock_nft::*;

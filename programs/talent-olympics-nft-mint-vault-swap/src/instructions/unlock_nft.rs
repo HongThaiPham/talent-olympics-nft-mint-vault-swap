@@ -1,12 +1,9 @@
-use anchor_lang::{
-    prelude::*,
-    system_program::{self, Transfer},
-};
+use anchor_lang::prelude::*;
 
-use crate::{Locker, ProtocolConfig, CONFIG_SEED, DISCRIMINATOR_SIZE, LOCKER_SEED, VAULT_SEED};
+use crate::{error::MyErrorCode, Locker, ProtocolConfig, CONFIG_SEED, LOCKER_SEED, VAULT_SEED};
 
 #[derive(Accounts)]
-pub struct LockNft<'info> {
+pub struct UnlockNft<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     #[account(
@@ -23,11 +20,12 @@ pub struct LockNft<'info> {
     )]
     pub vault: AccountInfo<'info>,
     #[account(
-        init,
+        mut,
         seeds = [LOCKER_SEED.as_ref(), asset.key.as_ref() , signer.key.as_ref()],
         bump,
-        space = DISCRIMINATOR_SIZE + Locker::INIT_SPACE,
-        payer = signer,
+        close = signer,
+        constraint = locker.owner == signer.key() @MyErrorCode::Unauthorized,
+        constraint = locker.asset == asset.key() @MyErrorCode::InvalidLocker,
     )]
     pub locker: Account<'info, Locker>,
 
@@ -54,25 +52,19 @@ pub struct LockNft<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> LockNft<'info> {
-    pub fn handler(&mut self) -> Result<()> {
-        self.locker.set_inner(Locker {
-            owner: self.signer.to_account_info().key(),
-            asset: self.asset.to_account_info().key(),
-            locked_at: Clock::get()?.unix_timestamp,
-        });
-        self.collect_fee()?;
-        self.transfer_nft()?;
+impl<'info> UnlockNft<'info> {
+    pub fn handler(&mut self, bumps: UnlockNftBumps) -> Result<()> {
+        self.return_nft(bumps.vault)?;
         Ok(())
     }
 
-    fn transfer_nft(&self) -> Result<()> {
+    fn return_nft(&self, vault_bump: u8) -> Result<()> {
         mpl_core::instructions::TransferV1Cpi {
             asset: &self.asset.to_account_info(),
             collection: self.collection.as_ref(),
             payer: &self.signer.to_account_info(),
-            authority: self.authority.as_deref(),
-            new_owner: &self.vault.to_account_info(),
+            authority: Some(&self.vault.to_account_info()),
+            new_owner: &self.signer.to_account_info(),
             system_program: Some(&self.system_program.to_account_info()),
             log_wrapper: self.log_wrapper.as_ref(),
             __program: &self.mpl_core,
@@ -80,20 +72,8 @@ impl<'info> LockNft<'info> {
                 compression_proof: None,
             },
         }
-        .invoke()?;
+        .invoke_signed(&[&[VAULT_SEED, &[vault_bump]]])?;
 
-        Ok(())
-    }
-
-    fn collect_fee(&self) -> Result<()> {
-        let accounts = Transfer {
-            from: self.signer.to_account_info(),
-            to: self.vault.to_account_info(),
-        };
-
-        let ctx = CpiContext::new(self.system_program.to_account_info(), accounts);
-
-        system_program::transfer(ctx, self.config.fee)?;
         Ok(())
     }
 }

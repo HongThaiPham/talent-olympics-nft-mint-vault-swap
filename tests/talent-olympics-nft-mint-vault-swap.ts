@@ -219,4 +219,38 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
 
     console.log("Token locked successfully at tx: ", tx);
   });
+
+  it("Should unlock a nft successfully", async () => {
+    const [lockerAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("locker"),
+        aNft.publicKey.toBuffer(),
+        user1.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    const tx = await program.methods
+      .unlockNft()
+      .accountsPartial({
+        signer: user1.publicKey,
+        asset: aNft.publicKey,
+        collection: collection.publicKey,
+        locker: lockerAccount,
+        authority: null,
+        logWrapper: null,
+      })
+      .signers([user1])
+      .rpc();
+
+    assert.ok(tx);
+
+    const assetData = await fetchAssetV1(
+      umi,
+      publicKey(aNft.publicKey.toString())
+    );
+
+    assert.equal(assetData.owner.toString(), user1.publicKey.toString());
+
+    console.log("Token unlocked successfully at tx: ", tx);
+  });
 });
