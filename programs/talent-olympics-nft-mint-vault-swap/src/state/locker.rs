@@ -6,4 +6,5 @@ pub struct Locker {
     pub owner: Pubkey,
     pub asset: Pubkey,
     pub locked_at: i64,
+    pub lamports: u64,
 }

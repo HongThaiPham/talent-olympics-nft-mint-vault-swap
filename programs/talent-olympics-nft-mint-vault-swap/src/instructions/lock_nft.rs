@@ -55,11 +55,12 @@ pub struct LockNft<'info> {
 }
 
 impl<'info> LockNft<'info> {
-    pub fn handler(&mut self) -> Result<()> {
+    pub fn handler(&mut self, lamports: u64) -> Result<()> {
         self.locker.set_inner(Locker {
             owner: self.signer.to_account_info().key(),
             asset: self.asset.to_account_info().key(),
             locked_at: Clock::get()?.unix_timestamp,
+            lamports,
         });
         self.collect_fee()?;
         self.transfer_nft()?;

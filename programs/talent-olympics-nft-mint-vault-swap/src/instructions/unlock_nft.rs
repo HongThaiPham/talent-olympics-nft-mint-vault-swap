@@ -59,6 +59,9 @@ impl<'info> UnlockNft<'info> {
     }
 
     fn return_nft(&self, vault_bump: u8) -> Result<()> {
+        // let bump = &[vault_bump];
+        // let signer_seeds = &[&[VAULT_SEED, bump][..]];
+
         mpl_core::instructions::TransferV1Cpi {
             asset: &self.asset.to_account_info(),
             collection: self.collection.as_ref(),
@@ -72,6 +75,7 @@ impl<'info> UnlockNft<'info> {
                 compression_proof: None,
             },
         }
+        // .invoke_signed(signer_seeds)?;
         .invoke_signed(&[&[VAULT_SEED, &[vault_bump]]])?;
 
         Ok(())

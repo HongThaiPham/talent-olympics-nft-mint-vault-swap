@@ -25,6 +25,7 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
     .TalentOlympicsNftMintVaultSwap as Program<TalentOlympicsNftMintVaultSwap>;
 
   const FEE = new anchor.BN(1_00_000_000);
+  const NFT_PRICE = new anchor.BN(1_00_000_000);
 
   const [admin, user1, user2] = [
     anchor.web3.Keypair.generate(),
@@ -193,7 +194,7 @@ describe("talent-olympics-nft-mint-vault-swap", () => {
       program.programId
     );
     const tx = await program.methods
-      .lockNft()
+      .lockNft(NFT_PRICE)
       .accountsPartial({
         signer: user1.publicKey,
         asset: aNft.publicKey,
