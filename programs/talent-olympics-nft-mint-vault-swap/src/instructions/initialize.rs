@@ -14,6 +14,7 @@ pub struct Initialize<'info> {
         bump 
     )]
     pub config: Account<'info, ProtocolConfig>,
+    /// CHECK: it's ok to use
     #[account(
         mut,
         seeds = [VAULT_SEED.as_ref()],
